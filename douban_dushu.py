@@ -73,7 +73,7 @@ def get_page_url(new_url):
     pagination = browser.find_element_by_class_name("pagination")
     a = pagination.find_elements_by_tag_name("a")
     tmp_url = a[2].get_attribute("href")
-    for i in range(2, 560):
+    for i in range(1, 560):
         num = (i - 1) * 20
         tmp_url1 = re.sub("start=(\d+)&", "start=" + str(num) + "&", tmp_url)
         url_list.append(tmp_url1)
@@ -107,8 +107,6 @@ def main(url):
     info = []  ## store detailed info
     new_url = get_free_url(url)  ##  获取免费书籍的主页url
     urls = get_page_url(new_url)  ##  获取免费书籍各页的url列表
-    tmp_info = get_info(new_url)  ##  获取免费书籍主页上的书的信息
-    info.extend(tmp_info)
     for url in urls:
         tmp_info = get_info(url)
         info.extend(tmp_info)
