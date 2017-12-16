@@ -39,7 +39,7 @@ def get_info(url):
     :param url: 免费书籍的各页的url
     :return: 详细信息的列表
     """
-    browser = webdriver.Chrome()
+    browser = webdriver.PhantomJS()
     browser.get(url)
     ## info
     info_lists = browser.find_elements_by_class_name("info")
