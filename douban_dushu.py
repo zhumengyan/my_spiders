@@ -13,13 +13,13 @@ import re
 import csv
 import random
 import time
-#from multiprocessing import Pool
+
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8"
 }
 url = "https://read.douban.com/"
-#new_url = "https://read.douban.com/kind/0?min_price=0&max_price=0"
+
 
 def get_free_url(raw_url):
     """
@@ -33,33 +33,6 @@ def get_free_url(raw_url):
     new_url = raw_url[:-1] + suffix
     return new_url
 
-def get_info(url):
-    """
-    获得详细信息
-    :param url: 免费书籍的各页的url
-    :return: 详细信息的列表
-    """
-    browser = webdriver.PhantomJS()
-    browser.get(url)
-    ## info
-    info_lists = browser.find_elements_by_class_name("info")
-    detailed_info = []
-    for info_list in info_lists:
-        name = info_list.find_element_by_class_name("title").text
-        author = info_list.find_element_by_class_name("labeled-text").text
-        category = info_list.find_element_by_class_name("labeled-text").text
-        rating_average = info_list.find_element_by_class_name("rating-average").text
-        rating_number = info_list.find_element_by_class_name("rating-amount").text[1:-1]
-        description = info_list.find_element_by_class_name("article-desc-brief").text
-        #print(name, author, category, rating_average, rating_number, description)
-        detailed_info.append((name, author, category, rating_average, rating_number, description))
-
-    ## cover
-    # print("cover is: ")
-    # pic = browser.find_elements_by_class_name("cover")
-    # print(pic)
-    browser.close()
-    return detailed_info
 
 def get_page_url(new_url):
     """
@@ -80,6 +53,60 @@ def get_page_url(new_url):
     browser.close()
     return url_list
 
+
+def isElementExist(alt, element):
+    """
+    判断是否存在某个标签属性
+    :param alt: info_list
+    :param element: 标签属性
+    :return: True or False
+    """
+    flag = True
+    try:
+        alt.find_element_by_css_selector(element)
+        return flag
+    except:
+        flag = False
+        return  flag
+
+
+def get_info(url):
+    """
+    获得详细信息
+    :param url: 免费书籍的各页的url
+    :return: 详细信息的列表
+    """
+    browser = webdriver.PhantomJS()
+    browser.get(url)
+    browser.set_page_load_timeout(20)
+    time.sleep(60)
+    ## info
+    info_lists = browser.find_elements_by_class_name("info")
+    detailed_info = []
+    for info_list in info_lists:
+        if (isElementExist(info_list, ".subscribe")):  ## 判断是连载还是书籍
+            author = info_list.find_element_by_css_selector(".author").text
+            category = info_list.find_element_by_css_selector(".category").text
+            name = info_list.find_element_by_css_selector(".title a").text
+            description = info_list.find_element_by_css_selector(".intro").text
+            rating_average = -1
+            rating_number = -1
+        else:
+            author = info_list.find_element_by_css_selector(".labeled-text .author-item").text
+            category = info_list.find_element_by_css_selector(".category .labeled-text").text
+            name = info_list.find_element_by_css_selector(".title a").text
+            description = info_list.find_element_by_css_selector(".article-desc-brief").text
+            rating_number = info_list.find_element_by_css_selector(".rating-amount .ratings-link").text[1:-1]
+
+            if (isElementExist(info_list, ".rating-average")):  ## 判断是否有评分均值
+                rating_average = info_list.find_element_by_css_selector(".rating-average").text
+            else:
+                rating_average = 0
+        detailed_info.append((name, author, category, rating_average, rating_number, description))
+    browser.close()
+    return detailed_info
+
+
 def write_to_file(info):
     """
     将数据写入文件
@@ -90,10 +117,11 @@ def write_to_file(info):
         writer = csv.writer(csvfile)
 
         ##  写入列名
-        writer.writerow(["name", "author", "category", "rating_average", "rating_number", "description"])
+        writer.writerow(["name", "author", "category", "rating_number", "description"])
         ##  写入信息
         for i in info:
             writer.writerow(i)
+
 
 def write_to_sql(info):
     """
@@ -103,10 +131,12 @@ def write_to_sql(info):
     """
     pass
 
+
 def main(url):
     info = []  ## store detailed info
     new_url = get_free_url(url)  ##  获取免费书籍的主页url
     urls = get_page_url(new_url)  ##  获取免费书籍各页的url列表
+    #print(urls)
     for url in urls:
         tmp_info = get_info(url)
         info.extend(tmp_info)
