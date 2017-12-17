@@ -31,6 +31,7 @@ def get_free_url(raw_url):
     soup = BeautifulSoup(response.text, "lxml")
     suffix = soup.select(".inner ul li a")[6]["href"]
     new_url = raw_url[:-1] + suffix
+    print("Got url for free e-books...")
     return new_url
 
 
@@ -51,7 +52,9 @@ def get_page_url(new_url):
         tmp_url1 = re.sub("start=(\d+)&", "start=" + str(num) + "&", tmp_url)
         url_list.append(tmp_url1)
     browser.close()
+    print("Got urls for all pages...")
     return url_list
+
 
 
 def isElementExist(alt, element):
@@ -79,7 +82,7 @@ def get_info(url):
     browser = webdriver.PhantomJS()
     browser.get(url)
     browser.set_page_load_timeout(20)
-    time.sleep(60)
+    time.sleep(5)
     ## info
     info_lists = browser.find_elements_by_class_name("info")
     detailed_info = []
@@ -96,7 +99,11 @@ def get_info(url):
             category = info_list.find_element_by_css_selector(".category .labeled-text").text
             name = info_list.find_element_by_css_selector(".title a").text
             description = info_list.find_element_by_css_selector(".article-desc-brief").text
-            rating_number = info_list.find_element_by_css_selector(".rating-amount .ratings-link").text[1:-1]
+            #rating_number = info_list.find_element_by_css_selector(".rating-amount .ratings-link").text[1:-1]
+            if (isElementExist(info_list, ".rating-amount .ratings-link")):
+                rating_number = info_list.find_element_by_css_selector(".rating-amount .ratings-link").text[1:-1]
+            else:
+                rating_number = 0
 
             if (isElementExist(info_list, ".rating-average")):  ## 判断是否有评分均值
                 rating_average = info_list.find_element_by_css_selector(".rating-average").text
@@ -136,11 +143,13 @@ def main(url):
     info = []  ## store detailed info
     new_url = get_free_url(url)  ##  获取免费书籍的主页url
     urls = get_page_url(new_url)  ##  获取免费书籍各页的url列表
-    #print(urls)
+    num = 0
     for url in urls:
         tmp_info = get_info(url)
         info.extend(tmp_info)
-        time.sleep(random.randint(2, 12))
+        time.sleep(random.randint(2, 8))
+        num += 1
+        print("Page",num, "is done...")
     write_to_file(info)
 
 if __name__ == "__main__":
